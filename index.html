@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Invoicing Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ---------- RESET & FONT ---------- */
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
+body { background: #f5f7fa; color: #333; min-height: 100vh; }
+
+/* ---------- CONTAINER ---------- */
+.dashboard { max-width: 480px; margin: 0 auto; padding: 20px; }
+
+/* ---------- HEADER CARDS ---------- */
+.card-row { display: flex; justify-content: space-between; margin-bottom: 20px; gap: 10px; }
+.card { flex: 1; background: white; border-radius: 12px; padding: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); text-align: center; }
+.card h3 { font-size: 14px; color: #555; margin-bottom: 5px; }
+.card p { font-size: 20px; font-weight: 600; color: #1a73e8; }
+
+/* ---------- FILTER TABS ---------- */
+.filter-tabs { display: flex; justify-content: space-between; margin-bottom: 20px; gap: 5px; }
+.filter-tabs button { flex: 1; background: white; border: none; padding: 10px 0; border-radius: 12px; cursor: pointer; font-weight: 500; color: #555; transition: 0.2s; }
+.filter-tabs button.active, .filter-tabs button:hover { background: #1a73e8; color: white; }
+
+/* ---------- NO INVOICES ---------- */
+.no-invoices { text-align: center; margin-top: 50px; }
+.no-invoices img { width: 150px; margin-bottom: 20px; }
+.no-invoices h2 { font-size: 18px; color: #777; }
+
+/* ---------- TABLE ---------- */
+.container { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 100px; }
+table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+th, td { text-align: center; padding: 10px; border-bottom: 1px solid #eee; font-size: 14px; }
+th { background: #1a73e8; color: white; }
+
+/* ---------- FLOATING ACTION BUTTON ---------- */
+.fab { position: fixed; bottom: 25px; right: 25px; background: #1a73e8; color: white; border: none; border-radius: 50%; width: 60px; height: 60px; font-size: 30px; cursor: pointer; box-shadow: 0 6px 18px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+.fab:hover { background: #1665c1; }
+</style>
+</head>
+<body>
+
+<div class="dashboard">
+
+  <!-- Top Cards -->
+  <div class="card-row">
+    <div class="card">
+      <h3>Total Unpaid</h3>
+      <p id="totalUnpaid">$0</p>
+    </div>
+    <div class="card">
+      <h3>Total Overdue</h3>
+      <p id="totalOverdue">$0</p>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filter-tabs">
+    <button class="active" data-filter="all">All</button>
+    <button data-filter="unpaid">Unpaid</button>
+    <button data-filter="partially">Partially Paid</button>
+    <button data-filter="overdue">Overdue</button>
+  </div>
+
+  <!-- No Invoices Illustration -->
+  <div class="no-invoices" id="noInvoices">
+    <img src="https://cdn-icons-png.flaticon.com/512/2910/2910761.png" alt="No invoices">
+    <h2>No invoices yet. Create your first invoice!</h2>
+  </div>
+
+  <!-- Saved Invoices Table -->
+  <div class="container" id="invoiceContainer" style="display:none;">
+    <h2>Saved Invoices</h2>
+    <table id="dashboardTable">
+      <thead>
+        <tr>
+          <th>Invoice No</th>
+          <th>Client</th>
+          <th>Total</th>
+          <th>Status</th>
+    
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- Floating Action Button -->
+<button class="fab" onclick="location.href='form.html'">+</button>
+
+
+<script>
+// -------------------- LOAD INVOICES --------------------
+const tbody = document.querySelector("#dashboardTable tbody");
+const invoiceContainer = document.getElementById("invoiceContainer");
+const noInvoices = document.getElementById("noInvoices");
+const totalUnpaidEl = document.getElementById("totalUnpaid");
+const totalOverdueEl = document.getElementById("totalOverdue");
+
+let allInvoices = JSON.parse(localStorage.getItem("allInvoices") || "[]");
+function renderInvoices(filter = "all") {
+  tbody.innerHTML = "";
+  let totalUnpaid = 0, totalOverdue = 0;
+
+  const filtered = allInvoices.filter(inv => {
+    if(filter === "all") return true;
+    if(filter === "unpaid") return inv.status.toLowerCase() === "unpaid";
+    if(filter === "partially") return inv.status.toLowerCase() === "partially paid";
+    if(filter === "overdue") return inv.status.toLowerCase() === "overdue";
+  });
+
+  if(filtered.length === 0) {
+    invoiceContainer.style.display = "none";
+    noInvoices.style.display = "block";
+  } else {
+    invoiceContainer.style.display = "block";
+    noInvoices.style.display = "none";
+  }
+
+  filtered.forEach((inv, index) => {
+    const row = document.createElement("tr");
+
+    // Status dropdown
+    const statusOptions = ["Unpaid", "Partially Paid", "Overdue", "Paid"].map(status => {
+      const selected = status.toLowerCase() === inv.status.toLowerCase() ? "selected" : "";
+      return `<option value="${status}" ${selected}>${status}</option>`;
+    }).join("");
+
+    row.innerHTML = `
+      <td>${inv.invoiceNo}</td>
+      <td>${inv.to.name}</td>
+      <td>$${inv.total}</td>
+      <td>
+        <select data-index="${index}" class="status-select">
+          ${statusOptions}
+        </select>
+      </td>
+    
+    `;
+    tbody.appendChild(row);
+
+    if(inv.status.toLowerCase() === "unpaid") totalUnpaid += parseFloat(inv.total);
+    if(inv.status.toLowerCase() === "overdue") totalOverdue += parseFloat(inv.total);
+  });
+
+  totalUnpaidEl.textContent = `$${totalUnpaid.toFixed(2)}`;
+  totalOverdueEl.textContent = `$${totalOverdue.toFixed(2)}`;
+
+  // Add event listeners to all status dropdowns
+  document.querySelectorAll(".status-select").forEach(select => {
+    select.addEventListener("change", (e) => {
+      const idx = e.target.dataset.index;
+      allInvoices[idx].status = e.target.value;
+      localStorage.setItem("allInvoices", JSON.stringify(allInvoices));
+      renderInvoices(document.querySelector(".filter-tabs button.active").dataset.filter);
+    });
+  });
+}
+
+// -------------------- FILTER BUTTONS --------------------
+document.querySelectorAll(".filter-tabs button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".filter-tabs button").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    renderInvoices(btn.dataset.filter);
+  });
+});
+
+// Initial render
+renderInvoices();
+</script>
+
+</body>
+</html>
