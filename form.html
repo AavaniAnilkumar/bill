@@ -595,6 +595,12 @@ paymentStatus.addEventListener("change", () => {
 .pdf-hide{
   display: none !important;
 }
+/* Move TOTAL to right side in PDF */
+#invoicePreview.pdf-export .summary.total {
+    margin-left: auto;      /* pushes it to the right */
+    text-align: right;
+    max-width: 300px;
+}
 
 
 </style>
